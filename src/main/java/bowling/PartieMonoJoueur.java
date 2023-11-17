@@ -9,49 +9,33 @@ import java.util.List;
  * final de ce joueur
  */
 public class PartieMonoJoueur {
-	private List<Integer> lancers;
-	private int tourActuel;
+
+	public static final int Nbre_Quilles = 10;
+	public static final int Nbre_Tours = 10;
+	private int numTour = 1;
+	private List<Tour> partie = new ArrayList<>();
+
 	/**
 	 * Constructeur
 	 */
 	public PartieMonoJoueur() {
-		lancers = new ArrayList<>();
-		tourActuel = 0;
+		for (int i = 1; i <= Nbre_Tours; i++) {
+			partie.add(new Tour(i));
+		}
 	}
 
 	/**
 	 * Cette méthode doit être appelée à chaque lancer de boule
 	 *
 	 * @param nombreDeQuillesAbattues le nombre de quilles abattues lors de ce lancer
-	 * @return vrai si le joueur doit lancer à nouveau pour continuer son tour, faux sinon
 	 * @throws IllegalStateException si la partie est terminée
+	 * @return vrai si le joueur doit lancer à nouveau pour continuer son tour, faux sinon	
 	 */
-
 	public boolean enregistreLancer(int nombreDeQuillesAbattues) {
-		if (estTerminee()) {
-			throw new IllegalStateException("La partie est déjà terminée.");
-		}
-
-		lancers.add(nombreDeQuillesAbattues);
-
-		if (tourActuel < 9) {
-			// Si ce n'est pas le dernier tour
-			if (nombreDeQuillesAbattues == 10) {
-				// Strike, le tour est terminé
-				tourActuel++;
-			} else {
-				// Non-strike, le joueur doit lancer à nouveau si c'est le premier lancer du tour
-				tourActuel = (lancers.size() % 2 == 0) ? tourActuel + 1 : tourActuel;
-			}
-		} else {
-			// Dernier tour
-			if (nombreDeQuillesAbattues == 10 || lancers.size() % 2 == 0) {
-				// Strike ou spare, le joueur peut lancer à nouveau
-			} else {
-				// Le joueur a terminé le dernier tour
-				tourActuel++;
-			}
-		}
+		if (estTerminee()) throw new IllegalStateException("la partie est fini !");
+		partie.get(numTour-1).lancer(nombreDeQuillesAbattues);
+		if (!partie.get(numTour-1).estFini()) return true;
+		if (numTour < Nbre_Tours) numTour++;
 		return false;
 	}
 
@@ -61,30 +45,24 @@ public class PartieMonoJoueur {
 	 * abattent 0 quille.
 	 * @return Le score du joueur
 	 */
-
 	public int score() {
 		int score = 0;
-		int tour = 0;
-
-		for (int i = 0; i < 10; i++) {
-			if (Strike(tour)) {
-				score += 10 + bonusStrike(tour);
-				tour++;
-			} else if (estSpare(tour)) {
-				score += 10 + bonusSpare(tour);
-				tour += 2;
-			} else {
-				score += lancers.get(tour) + lancers.get(tour + 1);
-				tour += 2;
+		for (int i = 0; i < Nbre_Tours-1; i++) {
+			Tour tour = partie.get(i);
+			score += tour.getNbQuilleTombeesLancer1() + tour.getNbQuilleTombeesLancer2();
+			if (tour.estSpare()) {
+				score+=partie.get(i+1).getNbQuilleTombeesLancer1();
+			}
+			else if (tour.estStrike()){
+				if (i+1 == Nbre_Tours-1 || !partie.get(i+1).estStrike()){
+					score+=partie.get(i+1).getNbQuilleTombeesLancer1() + partie.get(i+1).getNbQuilleTombeesLancer2();
+				}
+				else {
+					score+=partie.get(i+1).getNbQuilleTombeesLancer1() + partie.get(i+2).getNbQuilleTombeesLancer1();
+				}
 			}
 		}
-
-		// Considère que les lancers restants abattent 0 quille
-		int lancersRestants = lancers.size() % 2 == 0 ? 0 : 1; // 0 si pair, 1 si impair
-		for (int i = 0; i < lancersRestants; i++) {
-			score += 0;
-		}
-
+		score += partie.get(Nbre_Tours-1).getNbQuilleTombeesLancer1() + partie.get(Nbre_Tours-1).getNbQuilleTombeesLancer2() + partie.get(Nbre_Tours-1).getNbQuilleTombeesLancer3();
 		return score;
 	}
 
@@ -92,7 +70,7 @@ public class PartieMonoJoueur {
 	 * @return vrai si la partie est terminée pour ce joueur, faux sinon
 	 */
 	public boolean estTerminee() {
-		throw new UnsupportedOperationException("Pas encore implémenté");
+		return partie.get(Nbre_Tours-1).estFini();
 	}
 
 
@@ -100,7 +78,8 @@ public class PartieMonoJoueur {
 	 * @return Le numéro du tour courant [1..10], ou 0 si le jeu est fini
 	 */
 	public int numeroTourCourant() {
-		throw new UnsupportedOperationException("Pas encore implémenté");
+		if (estTerminee()) return 0;
+		return numTour;
 	}
 
 	/**
@@ -108,7 +87,9 @@ public class PartieMonoJoueur {
 	 *         est fini
 	 */
 	public int numeroProchainLancer() {
-		throw new UnsupportedOperationException("Pas encore implémenté");
+		if (estTerminee()) return 0;
+		else if (numTour == Nbre_Tours) return partie.get(Nbre_Tours-1).getNumCoup() + 1;
+		else return partie.get(numTour).getNumCoup();
 	}
 
 }
